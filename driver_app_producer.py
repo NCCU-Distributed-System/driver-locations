@@ -55,7 +55,7 @@ def generate_driver_app_event(driver_id):
     }
     
 # 發送資料到Kafka
-def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-locations', duration=30):
+def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-locations', duration=3000000000):
     producer = KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
@@ -66,7 +66,7 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
 
     try:
         # 在 duration 秒內持續傳送資料
-        while True: # (time.time() - start_time) < duration: --更改成持續推送資料
+        while (time.time() - start_time) < duration:
             for driver_id in driver_ids:
                 event = generate_driver_app_event(driver_id)
                 producer.send(topic_name, event)

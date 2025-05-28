@@ -39,7 +39,7 @@ def generate_gps_tracker_event(driver_id):
         }
     }
 
-def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-locations', duration=30): # 共產生30秒，每2秒發一次
+def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-locations', duration=3000000000): # 共產生30秒，每2秒發一次
     producer = KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
