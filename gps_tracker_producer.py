@@ -49,7 +49,7 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
     event_count = 0
 
     try:
-        while True: # (time.time() - start_time) < duration: --更改成持續推送資料
+        while (time.time() - start_time) < duration: 
             for driver_id in driver_ids:
                 event = generate_gps_tracker_event(driver_id)
                 producer.send(topic_name, event)
