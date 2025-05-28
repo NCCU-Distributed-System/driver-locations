@@ -54,7 +54,8 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
                 event = generate_gps_tracker_event(driver_id)
                 producer.send(topic_name, event)
                 event_count += 1
-                print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}") # print(f"[GPS 追蹤] 司機 {driver_id} 在 {event['region']} 狀態已送出")
+                print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}, location:{event['data']['region']}") # print(f"[GPS 追蹤] 司機 {driver_id} 在 {event['region']} 狀態已送出")
+                # print(json.dumps(event, indent=2, ensure_ascii=False)) // 可以看到整包event的內容
             time.sleep(2)
     finally:
         producer.flush()

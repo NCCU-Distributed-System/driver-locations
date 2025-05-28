@@ -33,8 +33,8 @@ def get_region(lat, lon):
 # 產生模擬的司機位置更新事件
 def generate_driver_app_event(driver_id):
     # 隨機產生在政大方圓 1 公里的經緯度
-    lat = round(random.uniform(25.0079, 25.0259), 6)
-    lon = round(random.uniform(121.5324, 121.5504), 6)
+    lat = round(random.uniform(24.9796, 24.9976), 6)
+    lon = round(random.uniform(121.5696, 121.5876), 6)
     
     speed = round(random.uniform(20, 50), 2) # 假設目前車速為 20~50 km/h 之間
     distance_km = haversine(lat, lon, NCCU_LAT, NCCU_LON) # 計算目前距離政大的直線距離
@@ -71,7 +71,8 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
                 event = generate_driver_app_event(driver_id)
                 producer.send(topic_name, event)
                 event_count += 1
-                print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}") # print(f"[Driver App] Sent for driver {driver_id} - ETA: {event['estimated_arrival_min']} min in {event['region']}")
+                print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}, location:{event['data']['region']} ") # print(f"[Driver App] Sent for driver {driver_id} - ETA: {event['estimated_arrival_min']} min in {event['region']}")
+                #print(json.dumps(event, indent=2, ensure_ascii=False)) #// 可以看到整包event的內容
             time.sleep(2)
     finally:
         # 時間(duration)結束時關閉 Producer
