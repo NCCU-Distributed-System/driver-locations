@@ -146,10 +146,10 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
                     event = generate_driver_app_event(driver_id)
                     all_events.append(event) 
                                        
-                    # ✅ Print 每位司機的事件資料（精簡）
+                    # Print 每位司機的事件資料（精簡）
                     print(f"[{event['timestamp']}] Driver {driver_id}: {event['data']}")
 
-                    # ✅ 特別印出第108位司機 (driver_id=1108)
+                    # 印出詳細司機資訊
 
                     print("\n=== FULL EVENT DATA ===")
                     print(json.dumps(event, indent=2, ensure_ascii=False))
