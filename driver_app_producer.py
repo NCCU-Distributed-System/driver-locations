@@ -1,10 +1,42 @@
 from kafka import KafkaProducer
-import json
+import json, random, time, datetime, math
+from flask import Flask, render_template, jsonify
 import random
 import time
 import datetime
 import math
 import threading
+
+"""
+可視化圖表程式區塊
+"""
+app = Flask(__name__)
+
+TAIPEI_BOUNDARY = {
+    "lat_min": 24.950000,
+    "lat_max": 25.120000,
+    "lon_min": 121.450000,
+    "lon_max": 121.620000
+}
+# Flask 視覺化後端
+with app.app_context():
+    print("Flask server is running. Visit http://localhost:5000")
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/locations")
+def get_locations():
+    with lock:
+        return jsonify([
+            {
+                "driver_id": driver_id, 
+                "lat": state["latitude"], 
+                "lon": state["longitude"]
+            }
+            for driver_id, state in driver_states.items()
+        ])
+
 """
 預設乘客位置在NCCU
 司機會在台北市內生成100個，每個美0.5秒移動5公尺(約時速30~40)
@@ -132,8 +164,8 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
     
-    initialize_driver_states() # 初始化司機# 開始位置更新執行緒
-    threading.Thread(target=update_driver_location, daemon=True).start() # 開始位置更新執行緒
+    # initialize_driver_states() # 初始化司機# 開始位置更新執行緒
+    # threading.Thread(target=update_driver_location, daemon=True).start() # 開始位置更新執行緒
     start_time = time.time() # 紀錄開始時間
     event_count = 0          # 紀錄事件數量
     
@@ -146,14 +178,13 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
                     event = generate_driver_app_event(driver_id)
                     all_events.append(event) 
                                        
-                    # Print 每位司機的事件資料（精簡）
-                    print(f"[{event['timestamp']}] Driver {driver_id}: {event['data']}")
+                    # # Print 每位司機的事件資料（精簡）
+                    # print(f"[{event['timestamp']}] Driver {driver_id}: {event['data']}")
 
-                    # 印出詳細司機資訊
-
-                    print("\n=== FULL EVENT DATA ===")
-                    print(json.dumps(event, indent=2, ensure_ascii=False))
-                    print("=== END OF FULL EVENT DATA ===\n")
+                    # # 印出詳細司機資訊
+                    # print("\n=== FULL EVENT DATA ===")
+                    # print(json.dumps(event, indent=2, ensure_ascii=False))
+                    # print("=== END OF FULL EVENT DATA ===\n")
 
                     
             if all_events:
@@ -173,4 +204,9 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
         print(f"Finished. Total events: {event_count}")
 
 if __name__ == "__main__":
-    produce_events()
+    initialize_driver_states()
+    threading.Thread(target=update_driver_location, daemon=True).start()
+    threading.Thread(target=produce_events, daemon=True).start()
+    
+    # produce_events()
+    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=5000)
