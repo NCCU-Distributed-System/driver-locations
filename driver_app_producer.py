@@ -109,18 +109,19 @@ def generate_driver_app_event(driver_id):
     speed = round(random.uniform(20, 50), 2) # 假設目前車速為 20~50 km/h 之間
     distance_km = haversine(lat, lon, NCCU_LAT, NCCU_LON) # 計算目前距離政大的直線距離
     eta_min = round((distance_km / (speed / 30)), 2) # 根據車速估算到達政大所需時間（分鐘）
-    region = get_region(lat, lon) # 決定此點落在哪一個自訂區域
+    location = get_region(lat, lon) # 決定此點落在哪一個自訂區域
 
     return {
         "event_type": "driver_app", # 統一格式改為"event_type"
         "driver_id": driver_id, # user_id 改 driver_id
         "timestamp": datetime.datetime.now().isoformat(),
         "data": {
-            "location": {"latitude": lat, "longitude": lon},
+            "latitude": lat,
+            "longitude": lon,
             "speed_kmph": speed,
             "distance_to_nccu_km": round(distance_km, 3),
             "estimated_arrival_min": eta_min,
-            "region": region
+            "location": location
         }
     }
     
@@ -135,7 +136,7 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
     threading.Thread(target=update_driver_location, daemon=True).start() # 開始位置更新執行緒
     start_time = time.time() # 紀錄開始時間
     event_count = 0          # 紀錄事件數量
-    printed_8 = False  # 標記是否已印出 driver_id=1008 的資料
+    
     try:
         # 在 duration 秒內持續傳送資料
         while (time.time() - start_time) < duration:
@@ -149,16 +150,16 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
                     print(f"[{event['timestamp']}] Driver {driver_id}: {event['data']}")
 
                     # ✅ 特別印出第108位司機 (driver_id=1108)
-                    if driver_id == 1008 and not printed_8:
-                        print("\n=== DRIVER 1008 FULL EVENT DATA ===")
-                        print(json.dumps(event, indent=2, ensure_ascii=False))
-                        print("=== END OF DRIVER 1008 EVENT DATA ===\n")
-                        printed_8 = True
+
+                    print("\n=== FULL EVENT DATA ===")
+                    print(json.dumps(event, indent=2, ensure_ascii=False))
+                    print("=== END OF FULL EVENT DATA ===\n")
+
                     
             if all_events:
                 producer.send(topic_name, all_events)
                 event_count += len(all_events)
-                print(f" - Driver {event['driver_id']} in {event['data']['region']} | ETA: {event['data']['estimated_arrival_min']} min")
+                print(f" - Driver {event['driver_id']} in {event['data']['location']} | ETA: {event['data']['estimated_arrival_min']} min")
                 # 以下舊的log
                 # print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}, location:{event['data']['region']} ") # print(f"[Driver App] Sent for driver {driver_id} - ETA: {event['estimated_arrival_min']} min in {event['region']}")
                 # print(json.dumps(event, indent=2, ensure_ascii=False)) #// 可以看到整包event的內容
