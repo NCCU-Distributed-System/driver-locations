@@ -6,36 +6,16 @@ import time
 import datetime
 import math
 import threading
+import sys, os
 
 """
-可視化圖表程式區塊
+崩潰重啟邏輯區段
 """
-app = Flask(__name__)
-
-TAIPEI_BOUNDARY = {
-    "lat_min": 24.950000,
-    "lat_max": 25.120000,
-    "lon_min": 121.450000,
-    "lon_max": 121.620000
-}
-# Flask 視覺化後端
-with app.app_context():
-    print("Flask server is running. Visit http://localhost:5000")
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/locations")
-def get_locations():
+def write_driver_states_to_file():
     with lock:
-        return jsonify([
-            {
-                "driver_id": driver_id, 
-                "lat": state["latitude"], 
-                "lon": state["longitude"]
-            }
-            for driver_id, state in driver_states.items()
-        ])
+        with open("driver_states.json", "w", encoding="utf-8") as f:
+            json.dump(driver_states, f, ensure_ascii=False, indent=2)
+            
 
 """
 預設乘客位置在NCCU
@@ -74,6 +54,8 @@ def get_region(lat, lon):
         return "中山區"
     elif 25.060000 <= lat < 25.070000 and 121.550000 <= lon <= 121.590000:
         return "松山區"
+    elif 25.050000 <= lat < 25.070000 and 121.500000 <= lon < 121.530000:
+        return "大同區"
     elif 25.040000 <= lat < 25.060000 and 121.570000 <= lon <= 121.610000:
         return "內湖區"
     elif 25.030000 <= lat < 25.040000 and 121.500000 <= lon <= 121.550000:
@@ -120,17 +102,6 @@ def update_driver_location():
                     state['longitude'] -= delta
                 
                 driver_states[driver_id] = state
-                
-# # 根據經緯度分類到特定區域，原先為["後山", "動物園捷運站", "水鋼琴社區", "木柵好樂迪"]，目前不代表真正位置，統一格式複製 @顏聖峰 的code後改的名稱
-# def get_region(lat, lon):
-#     if lat >= NCCU_LAT and lon < NCCU_LON:
-#         return "政大附近"
-#     elif lat >= NCCU_LAT and lon >= NCCU_LON:
-#         return "台北市中正區"
-#     elif lat < NCCU_LAT and lon < NCCU_LON:
-#         return "台北市信義區"
-#     else:
-#         return "台北市大安區"
     
 # 產生模擬的司機位置更新事件
 def generate_driver_app_event(driver_id):
@@ -190,11 +161,21 @@ def produce_events(bootstrap_servers='140.119.164.16:9092', topic_name='driver-l
             if all_events:
                 producer.send(topic_name, all_events)
                 event_count += len(all_events)
+                # 尤敏log
                 print(f" - Driver {event['driver_id']} in {event['data']['location']} | ETA: {event['data']['estimated_arrival_min']} min")
+                
+                # 模擬crash區段
+                if random.randint(1, 100000) == 1:
+                    print(f"[CRASH] Simulated crash after sending {event_count} events.")
+                    os._exit(1)
+                
                 # 以下舊的log
                 # print(f"Produced {event_count} events. Latest: {event['event_type']} by driver {event['driver_id']}, location:{event['data']['region']} ") # print(f"[Driver App] Sent for driver {driver_id} - ETA: {event['estimated_arrival_min']} min in {event['region']}")
                 # print(json.dumps(event, indent=2, ensure_ascii=False)) #// 可以看到整包event的內容
             time.sleep(0.5)
+    except Exception as e:
+        print(f"[CRASH] Exception occurred: {e}")
+        sys.exit(1)
     except KeyboardInterrupt:  
         print("Event production stopped manually")
     finally:
@@ -208,5 +189,10 @@ if __name__ == "__main__":
     threading.Thread(target=update_driver_location, daemon=True).start()
     threading.Thread(target=produce_events, daemon=True).start()
     
-    # produce_events()
-    app.run(debug=False, use_reloader=False, host="0.0.0.0", port=5000)
+    # 可視化模組
+    try:
+        while True:
+            write_driver_states_to_file()
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Stopped writing driver states.")
